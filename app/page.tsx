@@ -1,10 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CharacterGrid } from "@/components/CharacterGrid";
 import { SearchBar } from "@/components/SearchBar";
-import { getFilteredCharacters, getRecommendedCharactersForUser, getRecommendationRankings } from "@/lib/characters";
+import { getFilteredCharacters, getPreferenceWeights, getRecommendedCharactersForUser, getRecommendationRankings } from "@/lib/characters";
 import { getPreferenceTags } from "@/lib/storage";
+
+const TONE_OPTIONS = ["dreamy", "gentle", "playful", "calm", "moody", "comforting", "warm"];
+const RELATIONSHIP_OPTIONS = ["romantic", "supportive", "friendly", "intellectual"];
+const ARCHETYPE_OPTIONS = ["mystic companion", "guardian", "adventurer", "navigator", "healer", "artist", "dark lover", "rogue"];
+const SORT_OPTIONS = [
+  { label: "Popularity", value: "popularity" },
+  { label: "Highest Rated", value: "rating" },
+  { label: "Best Match", value: "match" },
+] as const;
 
 export default function HomePage() {
   const [preferences, setPreferences] = useState<string[]>([]);
@@ -18,7 +28,7 @@ export default function HomePage() {
     [preferences]
   );
 
-  const recommended = getRecommendedCharactersForUser(preferredTags);
+  const recommended = getRecommendedCharactersForUser(preferredTags, getPreferenceWeights(preferredTags));
   const trending = getRecommendationRankings();
 
   return (
@@ -59,9 +69,9 @@ export default function HomePage() {
       <section className="mb-10">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-white">Recommended for you</h2>
-          <a href="/preferences" className="text-sm text-violet-300 hover:text-violet-200">
+          <Link href="/preferences" className="text-sm text-violet-300 hover:text-violet-200">
             Tune preferences
-          </a>
+          </Link>
         </div>
         <CharacterGrid characters={recommended} />
       </section>
@@ -77,7 +87,7 @@ export default function HomePage() {
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-white">Popular picks</h2>
         </div>
-        <CharacterGrid characters={getFilteredCharacters({ includeNsfw: false }).slice(0, 6)} />
+        <CharacterGrid characters={getFilteredCharacters({ includeNsfw: false, sortBy: "popularity", preferredTags }).slice(0, 6)} />
       </section>
     </main>
   );

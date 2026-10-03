@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getCharacterBySlug, getWhyMatches, getRecommendedCharactersForUser } from "@/lib/characters";
+import { FavoriteButton } from "@/components/FavoriteButton";
+import { getCharacterBySlug, getRecommendedCharactersForUser, getPreferenceWeights, getWhyMatches } from "@/lib/characters";
 import { getPreferenceTags } from "@/lib/storage";
 import { notFound } from "next/navigation";
-import { FavoriteButton } from "@/components/FavoriteButton";
 
 export default function CharacterDetailPage({ params }: { params: { slug: string } }) {
   const [preferences, setPreferences] = useState<string[]>([]);
@@ -16,11 +16,16 @@ export default function CharacterDetailPage({ params }: { params: { slug: string
   const character = getCharacterBySlug(params.slug);
   if (!character) return notFound();
 
-  const similar = getRecommendedCharactersForUser(preferences.length > 0 ? preferences : character.tags)
+  const preferredTags = useMemo(
+    () => (preferences.length > 0 ? preferences : ["fantasy", "supportive", "cozy", "mystic"]),
+    [preferences]
+  );
+
+  const similar = getRecommendedCharactersForUser(preferredTags, getPreferenceWeights(preferredTags))
     .filter((entry) => entry.slug !== character.slug)
     .slice(0, 3);
 
-  const { tags: matchTags, reasons } = getWhyMatches(character, preferences.length > 0 ? preferences : character.tags);
+  const { tags: matchTags, reasons } = getWhyMatches(character, preferredTags);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -64,17 +69,18 @@ export default function CharacterDetailPage({ params }: { params: { slug: string
           <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
             <p className="text-sm uppercase tracking-[0.2em] text-violet-300">Why it matches you</p>
             <div className="mt-4 space-y-3">
-              {reasons.map((reason, i) => (
-                <div key={i} className="flex items-start gap-3">
+              {reasons.map((reason, index) => (
+                <div key={`${reason}-${index}`} className="flex items-start gap-3">
                   <span className="mt-1 text-xs text-violet-300">✓</span>
                   <span className="text-zinc-300">{reason}</span>
                 </div>
               ))}
             </div>
+
             {matchTags.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-700 pt-4">
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-zinc-700 pt-4">
                 {matchTags.map((tag) => (
-                  <span key={tag} className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[10px] text-violet-200">
+                  <span key={tag} className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[10px] uppercase tracking-wide text-violet-200">
                     {tag}
                   </span>
                 ))}

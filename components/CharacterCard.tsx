@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { Character } from "@/types/character";
 import { FavoriteButton } from "@/components/FavoriteButton";
 
 export function CharacterCard({ character }: { character: Character & { matchScore?: number } }) {
   return (
-    <div className="group block h-full">
+    <Link href={`/characters/${character.slug}`} className="group block h-full">
       <div className="h-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 transition duration-200 hover:-translate-y-1 hover:border-violet-500 hover:shadow-glow">
         <div className="relative h-48 overflow-hidden bg-gradient-to-br from-violet-900 via-zinc-900 to-zinc-950">
           {character.avatarUrl ? (
@@ -37,6 +38,6 @@ export function CharacterCard({ character }: { character: Character & { matchSco
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

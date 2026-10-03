@@ -1,20 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CharacterGrid } from "@/components/CharacterGrid";
-import { getFilteredCharacters } from "@/lib/characters";
 import { SearchBar } from "@/components/SearchBar";
+import { getFilteredCharacters, getPreferenceWeights, getRecommendedCharactersForUser, CharacterSort } from "@/lib/characters";
 import { getPreferenceTags } from "@/lib/storage";
 
-const TONE_OPTIONS = ["dreamy", "gentle", "playful", "calm", "moody", "comforting"];
+const TONE_OPTIONS = ["dreamy", "gentle", "playful", "calm", "moody", "comforting", "warm"];
 const RELATIONSHIP_OPTIONS = ["romantic", "supportive", "friendly", "intellectual"];
 const ARCHETYPE_OPTIONS = ["mystic companion", "guardian", "adventurer", "navigator", "healer", "artist", "dark lover", "rogue"];
-const SORT_OPTIONS: Array<{ label: string; value: "match" | "rating" | "popularity" | "newest" }> = [
-  { label: "Popularity", value: "popularity" },
-  { label: "Highest Rated", value: "rating" },
-  { label: "Best Match", value: "match" },
-];
-
 const FILTER_TAGS = ["Fantasy", "Romance", "Cozy", "Supportive", "Dark", "Mystic", "Adventure", "Sci-Fi"];
 
 export default function SearchPage({
@@ -27,7 +22,7 @@ export default function SearchPage({
     relationshipStyle?: string;
     archetype?: string;
     nsfw?: string;
-    sort?: "match" | "rating" | "popularity" | "newest";
+    sort?: CharacterSort;
   };
 }) {
   const [preferences, setPreferences] = useState<string[]>([]);
@@ -43,7 +38,12 @@ export default function SearchPage({
   const relationshipStyle = searchParams?.relationshipStyle ?? "";
   const archetype = searchParams?.archetype ?? "";
   const includeNsfw = searchParams?.nsfw === "true";
-  const sortBy = searchParams?.sort ?? "popularity";
+  const sortBy = searchParams?.sort ?? "match";
+
+  const preferredTags = useMemo(
+    () => (preferences.length > 0 ? preferences : ["fantasy", "supportive", "cozy", "mystic"]),
+    [preferences]
+  );
 
   const filteredCharacters = getFilteredCharacters({
     query: q,
@@ -53,38 +53,29 @@ export default function SearchPage({
     archetype,
     includeNsfw,
     sortBy,
-    preferredTags: preferences,
+    preferredTags,
   });
 
-  const makeTagHref = (tag: string) => {
-    const next = new URLSearchParams();
-    if (q) next.set("q", q);
-    const nextTags = tags.includes(tag.toLowerCase())
-      ? tags.filter((item) => item.toLowerCase() !== tag.toLowerCase())
-      : [...tags, tag.toLowerCase()];
-    if (nextTags.length) next.set("tags", nextTags.join(","));
-    if (tone) next.set("tone", tone);
-    if (relationshipStyle) next.set("relationshipStyle", relationshipStyle);
-    if (archetype) next.set("archetype", archetype);
-    if (includeNsfw) next.set("nsfw", "true");
-    if (sortBy && sortBy !== "popularity") next.set("sort", sortBy);
-    return `/search?${next.toString()}`;
-  };
+  const buildUrl = (overrides: Record<string, string | undefined>) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (tags.length) params.set("tags", tags.join(","));
+    if (tone) params.set("tone", tone);
+    if (relationshipStyle) params.set("relationshipStyle", relationshipStyle);
+    if (archetype) params.set("archetype", archetype);
+    if (includeNsfw) params.set("nsfw", "true");
+    if (sortBy && sortBy !== "match") params.set("sort", sortBy);
 
-  const makeSortHref = (sort: string) => {
-    const next = new URLSearchParams();
-    if (q) next.set("q", q);
-    if (tags.length) next.set("tags", tags.join(","));
-    if (tone) next.set("tone", tone);
-    if (relationshipStyle) next.set("relationshipStyle", relationshipStyle);
-    if (archetype) next.set("archetype", archetype);
-    if (includeNsfw) next.set("nsfw", "true");
-    if (sort && sort !== "popularity") next.set("sort", sort);
-    return `/search?${next.toString()}`;
+    Object.entries(overrides).forEach(([key, value]) => {
+      if (value && value !== "") params.set(key, value);
+      else params.delete(key);
+    });
+
+    return "/search?" + params.toString();
   };
 
   const clearHref = "/search";
-  const hasActiveFilters = q || tags.length > 0 || tone || relationshipStyle || archetype || includeNsfw;
+  const hasActiveFilters = Boolean(q || tags.length || tone || relationshipStyle || archetype || includeNsfw);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
@@ -96,79 +87,78 @@ export default function SearchPage({
         <SearchBar defaultValue={q} />
       </div>
 
-      {/* Quick Filter Tags */}
       <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-zinc-300">
         {FILTER_TAGS.map((tag) => {
-          const active = tags.includes(tag.toLowerCase());
+          const slug = tag.toLowerCase();
+          const active = tags.includes(slug);
           return (
-            <a
+            <Link
               key={tag}
-              href={makeTagHref(tag)}
+              href={buildUrl({ tags: active ? tags.filter((item) => item !== slug).join(",") : [...tags, slug].join(",") })}
               className={[
                 "rounded-full border px-3 py-1.5 transition",
                 active ? "border-violet-500 bg-violet-500/15 text-violet-100" : "border-zinc-700 bg-zinc-900 hover:border-violet-500",
               ].join(" ")}
             >
               {tag}
-            </a>
+            </Link>
           );
         })}
 
         {hasActiveFilters && (
-          <a href={clearHref} className="rounded-full border border-zinc-700 bg-transparent px-3 py-1.5 text-zinc-300 hover:border-zinc-500">
+          <Link href={clearHref} className="rounded-full border border-zinc-700 bg-transparent px-3 py-1.5 text-zinc-300 hover:border-zinc-500">
             Clear
-          </a>
+          </Link>
         )}
       </div>
 
-      {/* Advanced Filters and Sort */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <label className="text-xs uppercase tracking-[0.15em] text-zinc-400">Sort by:</label>
           <select
             value={sortBy}
             onChange={(e) => {
-              const url = makeSortHref(e.target.value);
+              const url = buildUrl({ sort: e.target.value });
               window.location.href = url;
             }}
             className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 outline-none"
           >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
         </div>
 
         <button
-          onClick={() => setFilterOpen(!filterOpen)}
+          type="button"
+          onClick={() => setFilterOpen((value) => !value)}
           className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 hover:border-violet-500"
         >
           {filterOpen ? "Hide filters" : "Show filters"}
         </button>
       </div>
 
-      {/* Expandable Filter Panel */}
       {filterOpen && (
         <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
           <div className="grid gap-6 md:grid-cols-3">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">Tone</p>
               <div className="flex flex-wrap gap-2">
-                {TONE_OPTIONS.map((t) => {
-                  const active = tone === t;
+                {TONE_OPTIONS.map((option) => {
+                  const active = tone === option;
                   return (
-                    <a
-                      key={t}
-                      href={`/search?tone=${active ? "" : t}${q ? "&q=" + q : ""}${tags.length ? "&tags=" + tags.join(",") : ""}`}
+                    <Link
+                      key={option}
+                      href={buildUrl({ tone: active ? "" : option })}
                       className={[
                         "rounded-full border px-2 py-1 text-xs transition",
                         active ? "border-violet-500 bg-violet-500/15 text-violet-100" : "border-zinc-700 bg-zinc-800 hover:border-violet-500",
                       ].join(" ")}
                     >
-                      {t}
-                    </a>
+                      {option}
+                    </Link>
                   );
                 })}
               </div>
@@ -177,19 +167,19 @@ export default function SearchPage({
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">Relationship Style</p>
               <div className="flex flex-wrap gap-2">
-                {RELATIONSHIP_OPTIONS.map((r) => {
-                  const active = relationshipStyle === r;
+                {RELATIONSHIP_OPTIONS.map((option) => {
+                  const active = relationshipStyle === option;
                   return (
-                    <a
-                      key={r}
-                      href={`/search?relationshipStyle=${active ? "" : r}${q ? "&q=" + q : ""}${tags.length ? "&tags=" + tags.join(",") : ""}`}
+                    <Link
+                      key={option}
+                      href={buildUrl({ relationshipStyle: active ? "" : option })}
                       className={[
                         "rounded-full border px-2 py-1 text-xs transition",
                         active ? "border-violet-500 bg-violet-500/15 text-violet-100" : "border-zinc-700 bg-zinc-800 hover:border-violet-500",
                       ].join(" ")}
                     >
-                      {r}
-                    </a>
+                      {option}
+                    </Link>
                   );
                 })}
               </div>
@@ -198,19 +188,19 @@ export default function SearchPage({
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">Archetype</p>
               <div className="flex flex-wrap gap-2">
-                {ARCHETYPE_OPTIONS.map((a) => {
-                  const active = archetype === a;
+                {ARCHETYPE_OPTIONS.map((option) => {
+                  const active = archetype === option;
                   return (
-                    <a
-                      key={a}
-                      href={`/search?archetype=${active ? "" : a}${q ? "&q=" + q : ""}${tags.length ? "&tags=" + tags.join(",") : ""}`}
+                    <Link
+                      key={option}
+                      href={buildUrl({ archetype: active ? "" : option })}
                       className={[
                         "rounded-full border px-2 py-1 text-xs transition",
                         active ? "border-violet-500 bg-violet-500/15 text-violet-100" : "border-zinc-700 bg-zinc-800 hover:border-violet-500",
                       ].join(" ")}
                     >
-                      {a}
-                    </a>
+                      {option}
+                    </Link>
                   );
                 })}
               </div>
