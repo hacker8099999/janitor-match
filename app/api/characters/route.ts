@@ -1,39 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mockCharacters } from "@/lib/mockData";
+import { getFilteredCharacters, getRecommendedCharactersForUser } from "@/lib/characters";
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q")?.toLowerCase() ?? "";
-  const tags = (searchParams.get("tags") ?? "")
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q") ?? "";
+  const tags = searchParams.get("tags")?.split(",").map((tag) => tag.trim()) ?? [];
+  const tone = searchParams.get("tone") ?? "";
+  const relationshipStyle = searchParams.get("relationshipStyle") ?? "";
+  const archetype = searchParams.get("archetype") ?? "";
+  const includeNsfw = searchParams.get("nsfw") === "true";
 
-  let results = [...mockCharacters];
+  const characters = getFilteredCharacters({
+    query: q,
+    tags,
+    tone,
+    relationshipStyle,
+    archetype,
+    includeNsfw,
+  });
 
-  if (q) {
-    results = results.filter((character) => {
-      const haystack = [
-        character.name,
-        character.summary,
-        character.description,
-        character.personality,
-        character.tags.join(" "),
-        character.archetype,
-        character.tone,
-      ]
-        .join(" ")
-        .toLowerCase();
+  return NextResponse.json({
+    characters,
+    total: characters.length,
+  });
+}
 
-      return haystack.includes(q);
-    });
-  }
-
-  if (tags.length > 0) {
-    results = results.filter((character) =>
-      tags.every((tag) => character.tags.some((characterTag) => characterTag.toLowerCase() === tag.toLowerCase()))
-    );
-  }
-
-  return NextResponse.json({ characters: results });
+export async function POST(request: NextRequest) {
+  const payload = await request.json();
+  const tags = payload.preferredTags ?? ["fantasy", "supportive", "cozy", "mystic"];
+  return NextResponse.json({
+    recommendations: getRecommendedCharactersForUser(tags),
+  });
 }

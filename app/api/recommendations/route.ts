@@ -1,14 +1,20 @@
-import { NextResponse } from "next/server";
-import { mockCharacters } from "@/lib/mockData";
+import { NextRequest, NextResponse } from "next/server";
+import { getCharacterBySlug, getRecommendedCharactersForUser } from "@/lib/characters";
 
-export async function GET() {
-  const characters = mockCharacters
-    .map((character) => ({
-      ...character,
-      score: character.rating * 2 + character.popularity / 5000,
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const slug = searchParams.get("slug");
 
-  return NextResponse.json({ recommendations: characters });
+  if (slug) {
+    const character = getCharacterBySlug(slug);
+    return character
+      ? NextResponse.json({ character })
+      : NextResponse.json({ error: "Character not found" }, { status: 404 });
+  }
+
+  const preferredTags = ["fantasy", "supportive", "cozy", "mystic"];
+
+  return NextResponse.json({
+    recommendations: getRecommendedCharactersForUser(preferredTags),
+  });
 }

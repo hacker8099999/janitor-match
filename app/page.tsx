@@ -1,11 +1,12 @@
 import { CharacterGrid } from "@/components/CharacterGrid";
-import { RecommendationSection } from "@/components/RecommendationSection";
 import { SearchBar } from "@/components/SearchBar";
+import { getFilteredCharacters, getRecommendationRankings, getRecommendedCharactersForUser } from "@/lib/characters";
 import { mockCharacters } from "@/lib/mockData";
 
 export default function HomePage() {
-  const trending = [...mockCharacters].sort((a, b) => b.popularity - a.popularity).slice(0, 4);
-  const recommended = [...mockCharacters].sort((a, b) => b.rating - a.rating).slice(0, 4);
+  const preferredTags = ["fantasy", "supportive", "cozy", "mystic"];
+  const recommended = getRecommendedCharactersForUser(preferredTags);
+  const trending = getRecommendationRankings();
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
@@ -42,14 +43,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      <RecommendationSection title="Recommended for you" characters={recommended} />
-      <RecommendationSection title="Trending now" characters={trending} />
+      <section className="mb-10">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-2xl font-semibold text-white">Recommended for you</h2>
+        </div>
+        <CharacterGrid characters={recommended} />
+      </section>
+
+      <section className="mb-10">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-2xl font-semibold text-white">Trending now</h2>
+        </div>
+        <CharacterGrid characters={trending} />
+      </section>
 
       <section className="mb-10">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-white">Popular picks</h2>
         </div>
-        <CharacterGrid characters={mockCharacters.slice(0, 6)} />
+        <CharacterGrid characters={getFilteredCharacters({ includeNsfw: false }).slice(0, 6)} />
       </section>
     </main>
   );
