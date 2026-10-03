@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { Character } from "@/types/character";
 import { FavoriteButton } from "@/components/FavoriteButton";
 
-export function CharacterCard({ character }: { character: Character }) {
+export function CharacterCard({ character }: { character: Character & { matchScore?: number } }) {
   return (
-    <Link href={`/characters/${character.slug}`} className="group block h-full">
+    <div className="group block h-full">
       <div className="h-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 transition duration-200 hover:-translate-y-1 hover:border-violet-500 hover:shadow-glow">
         <div className="relative h-48 overflow-hidden bg-gradient-to-br from-violet-900 via-zinc-900 to-zinc-950">
           {character.avatarUrl ? (
@@ -31,11 +30,13 @@ export function CharacterCard({ character }: { character: Character }) {
           </div>
 
           <div className="flex items-center justify-between gap-2 pt-1">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Match {character.popularity / 1000}k</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+              {typeof character.matchScore === "number" ? `Match ${character.matchScore.toFixed(1)}` : `Popularity ${Math.round(character.popularity / 1000)}k`}
+            </span>
             <FavoriteButton slug={character.slug} compact />
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

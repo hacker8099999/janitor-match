@@ -1,9 +1,23 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { CharacterGrid } from "@/components/CharacterGrid";
 import { SearchBar } from "@/components/SearchBar";
-import { getFilteredCharacters, getRecommendationRankings, getRecommendedCharactersForUser } from "@/lib/characters";
+import { getFilteredCharacters, getRecommendedCharactersForUser, getRecommendationRankings } from "@/lib/characters";
+import { getPreferenceTags } from "@/lib/storage";
 
 export default function HomePage() {
-  const preferredTags = ["fantasy", "supportive", "cozy", "mystic"];
+  const [preferences, setPreferences] = useState<string[]>([]);
+
+  useEffect(() => {
+    setPreferences(getPreferenceTags());
+  }, []);
+
+  const preferredTags = useMemo(
+    () => (preferences.length > 0 ? preferences : ["fantasy", "supportive", "cozy", "mystic"]),
+    [preferences]
+  );
+
   const recommended = getRecommendedCharactersForUser(preferredTags);
   const trending = getRecommendationRankings();
 
@@ -45,7 +59,9 @@ export default function HomePage() {
       <section className="mb-10">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-white">Recommended for you</h2>
-          <a href="/search" className="text-sm text-violet-300 hover:text-violet-200">View all</a>
+          <a href="/preferences" className="text-sm text-violet-300 hover:text-violet-200">
+            Tune preferences
+          </a>
         </div>
         <CharacterGrid characters={recommended} />
       </section>

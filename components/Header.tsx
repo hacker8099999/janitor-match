@@ -17,6 +17,7 @@ export function Header() {
           <Link href="/">Home</Link>
           <Link href="/search">Discover</Link>
           <Link href="/library">Library</Link>
+          <Link href="/preferences">Preferences</Link>
         </nav>
 
         <div className="flex items-center gap-3">
