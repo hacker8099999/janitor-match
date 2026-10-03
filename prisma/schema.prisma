@@ -8,62 +8,76 @@ datasource db {
 }
 
 model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  favorites     SavedCharacter[]
+  preferences   UserPreference[]
+  reviews       CharacterReview[]
+}
+
+model UserPreference {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  avatarUrl String?
+  userId    String
+  tags      String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  favorites SavedCharacter[]
-  reviews   CharacterReview[]
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
 }
 
 model Character {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  name            String
-  summary         String
-  description     String?
-  greeting        String?
-  personality     String?
-  avatarUrl       String?
-  tags            String[]
-  archetype       String?
-  tone            String?
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  name              String
+  summary           String
+  description       String?
+  greeting          String?
+  personality       String?
+  avatarUrl         String?
+  tags              String[]
+  archetype         String?
+  tone              String?
   relationshipStyle String?
-  rating          Float    @default(0)
-  popularityScore Float    @default(0)
-  isNsfw          Boolean  @default(false)
-  isPublic        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  rating            Float    @default(0)
+  popularity        Float    @default(0)
+  isNsfw            Boolean  @default(false)
+  isPublic          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  favorites SavedCharacter[]
-  reviews   CharacterReview[]
+  favorites         SavedCharacter[]
+  reviews           CharacterReview[]
 }
 
 model SavedCharacter {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   characterId String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   @@unique([userId, characterId])
 }
 
 model CharacterReview {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   characterId String
   rating      Int
   comment     String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   @@unique([userId, characterId])
