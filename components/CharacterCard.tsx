@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Character } from "@/types/character";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 export function CharacterCard({ character }: { character: Character }) {
   return (
@@ -27,6 +28,11 @@ export function CharacterCard({ character }: { character: Character }) {
                 {tag}
               </span>
             ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Match {character.popularity / 1000}k</span>
+            <FavoriteButton slug={character.slug} compact />
           </div>
         </div>
       </div>

@@ -1,9 +1,30 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { CharacterGrid } from "@/components/CharacterGrid";
 import { mockCharacters } from "@/lib/mockData";
+import { getFavoriteSlugs } from "@/lib/storage";
 
 export default function LibraryPage() {
-  const favorites = mockCharacters.slice(0, 3);
-  const saved = mockCharacters.slice(3, 6);
+  const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([]);
+
+  useEffect(() => {
+    setFavoriteSlugs(getFavoriteSlugs());
+
+    const onStorage = () => setFavoriteSlugs(getFavoriteSlugs());
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const favoriteCharacters = useMemo(
+    () => mockCharacters.filter((character) => favoriteSlugs.includes(character.slug)),
+    [favoriteSlugs]
+  );
+
+  const savedForLater = useMemo(
+    () => mockCharacters.filter((character) => !favoriteSlugs.includes(character.slug)).slice(0, 3),
+    [favoriteSlugs]
+  );
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
@@ -14,12 +35,18 @@ export default function LibraryPage() {
 
       <section className="mb-12">
         <h2 className="mb-5 text-2xl font-semibold text-white">Favorites</h2>
-        <CharacterGrid characters={favorites} />
+        {favoriteCharacters.length > 0 ? (
+          <CharacterGrid characters={favoriteCharacters} />
+        ) : (
+          <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-950 p-8 text-zinc-400">
+            You haven’t saved any characters yet. Start browsing and tap Save on the characters you love.
+          </div>
+        )}
       </section>
 
       <section>
-        <h2 className="mb-5 text-2xl font-semibold text-white">Saved for later</h2>
-        <CharacterGrid characters={saved} />
+        <h2 className="mb-5 text-2xl font-semibold text-white">Suggested from your taste</h2>
+        <CharacterGrid characters={savedForLater} />
       </section>
     </main>
   );
