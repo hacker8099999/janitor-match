@@ -1,13 +1,26 @@
-import { getCharacterBySlug, getRecommendedCharactersForUser } from "@/lib/characters";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { getCharacterBySlug, getWhyMatches, getRecommendedCharactersForUser } from "@/lib/characters";
+import { getPreferenceTags } from "@/lib/storage";
 import { notFound } from "next/navigation";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 export default function CharacterDetailPage({ params }: { params: { slug: string } }) {
+  const [preferences, setPreferences] = useState<string[]>([]);
+
+  useEffect(() => {
+    setPreferences(getPreferenceTags());
+  }, []);
+
   const character = getCharacterBySlug(params.slug);
   if (!character) return notFound();
 
-  const similar = getRecommendedCharactersForUser(character.tags)
+  const similar = getRecommendedCharactersForUser(preferences.length > 0 ? preferences : character.tags)
     .filter((entry) => entry.slug !== character.slug)
     .slice(0, 3);
+
+  const { tags: matchTags, reasons } = getWhyMatches(character, preferences.length > 0 ? preferences : character.tags);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -35,6 +48,10 @@ export default function CharacterDetailPage({ params }: { params: { slug: string
                 </span>
               ))}
             </div>
+
+            <div className="mt-5 flex gap-2">
+              <FavoriteButton slug={character.slug} />
+            </div>
           </div>
         </div>
 
@@ -46,9 +63,23 @@ export default function CharacterDetailPage({ params }: { params: { slug: string
 
           <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
             <p className="text-sm uppercase tracking-[0.2em] text-violet-300">Why it matches you</p>
-            <p className="mt-4 text-zinc-300">
-              This character shares your preferred vibes: {character.tags.slice(0, 3).join(", ")}. It fits a {character.tone} tone and a {character.relationshipStyle} relationship style.
-            </p>
+            <div className="mt-4 space-y-3">
+              {reasons.map((reason, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="mt-1 text-xs text-violet-300">✓</span>
+                  <span className="text-zinc-300">{reason}</span>
+                </div>
+              ))}
+            </div>
+            {matchTags.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-700 pt-4">
+                {matchTags.map((tag) => (
+                  <span key={tag} className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[10px] text-violet-200">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
@@ -57,16 +88,31 @@ export default function CharacterDetailPage({ params }: { params: { slug: string
           </section>
 
           <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-sm uppercase tracking-[0.2em] text-violet-300">Similar characters</p>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              {similar.map((entry) => (
-                <a key={entry.slug} href={`/characters/${entry.slug}`} className="rounded-2xl border border-zinc-700 bg-zinc-900 p-3">
-                  <p className="font-semibold text-white">{entry.name}</p>
-                  <p className="mt-1 text-sm text-zinc-400">{entry.summary}</p>
-                </a>
-              ))}
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Tone</p>
+                <p className="mt-2 text-lg text-white">{character.tone}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Relationship Style</p>
+                <p className="mt-2 text-lg text-white">{character.relationshipStyle}</p>
+              </div>
             </div>
           </section>
+
+          {similar.length > 0 && (
+            <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+              <p className="text-sm uppercase tracking-[0.2em] text-violet-300">Similar characters</p>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                {similar.map((entry) => (
+                  <a key={entry.slug} href={`/characters/${entry.slug}`} className="rounded-2xl border border-zinc-700 bg-zinc-900 p-3 transition hover:border-violet-500">
+                    <p className="font-semibold text-white">{entry.name}</p>
+                    <p className="mt-1 text-sm text-zinc-400">{entry.summary}</p>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </main>
