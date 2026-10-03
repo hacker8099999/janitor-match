@@ -7,10 +7,10 @@ export default function LibraryPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
-      <section className="mb-10">
+      <div className="mb-10">
         <p className="text-sm uppercase tracking-[0.2em] text-violet-300">Your library</p>
         <h1 className="mt-2 text-3xl font-bold text-white">Saved and favorite companions</h1>
-      </section>
+      </div>
 
       <section className="mb-12">
         <h2 className="mb-5 text-2xl font-semibold text-white">Favorites</h2>
